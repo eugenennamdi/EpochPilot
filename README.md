@@ -13,9 +13,9 @@
 
 ---
 
-### Quick Judge Navigation Bar
+### Documentation Index
 
-[Verified On-Chain Proofs](#verified-on-chain-proofs) · [Mathematical Engine](#mathematical-engine) · [MUSD & MEZO Integration](#musd--mezo-integration) · [60-Second Judge Walkthrough](#60-second-judge-walkthrough) · [Security Architecture (`SECURITY.md`)](./SECURITY.md)
+[Verified On-Chain Proofs](#verified-on-chain-proofs) · [Mathematical Engine](#mathematical-engine) · [MUSD & MEZO Integration](#musd--mezo-integration) · [Institutional Execution Modes & System Walkthrough](#institutional-execution-modes--system-walkthrough) · [Security Architecture (`SECURITY.md`)](./SECURITY.md)
 
 </div>
 
@@ -25,13 +25,13 @@
 
 ## Verified On-Chain Proofs (Mezo Matsnet Testnet — Chain ID `31611`)
 
-Judges evaluating Stage 1 & Stage 2 can verify our live smart contract deployment, bytecode verification, and real on-chain execution history on Mezo Matsnet Testnet (`31611`) and Mezo Mainnet (`31612`) in one click:
+Live smart contract deployments, bytecode verification, and on-chain execution history on Mezo Matsnet Testnet (`31611`) and Mezo Mainnet (`31612`):
 
 | Proof Artifact | On-Chain Identifier / Address | Explorer Verification |
 | :--- | :--- | :--- |
 | **`EpochPilotRouter.sol` (Deployed Contract)** | `0x938419eB410b5fc2785a17DcCE80f405508Af8ad` | [View on Mezo Explorer ↗](https://explorer.test.mezo.org/address/0x938419eB410b5fc2785a17DcCE80f405508Af8ad) |
 | **Router Deployment Transaction (Block `#16,348,533`)** | `0x0fa47491850b687f8decbc24e4b1e162bf1afdc853a0b013797f07da1a0a2e1b` | [View Deployment Tx ↗](https://explorer.test.mezo.org/tx/0x0fa47491850b687f8decbc24e4b1e162bf1afdc853a0b013797f07da1a0a2e1b) |
-| **Verified Protocol Execution History** (`VeMEZO.createLock`, `BoostVoter.vote`, `BoostVoter.claimBribes`, `RewardsDistributor.claim`, `MEZOCaller.approve`, `EpochPilotRouter.executeDualEpochVote`) | `0x727eE5DC96E729d8f6C6930cd02ad1695498f3B8` | [View Live Wallet History ↗](https://explorer.test.mezo.org/address/0x727eE5DC96E729d8f6C6930cd02ad1695498f3B8) |
+| **Verified Protocol Execution History** (`VeMEZO.createLock`, `BoostVoter.vote`, `BoostVoter.claimBribes`, `RewardsDistributor.claim`, `MEZOCaller.approve`, `EpochPilotRouter.executeOptimalEpochVote`) | `0x727eE5DC96E729d8f6C6930cd02ad1695498f3B8` | [View Live Wallet History ↗](https://explorer.test.mezo.org/address/0x727eE5DC96E729d8f6C6930cd02ad1695498f3B8) |
 
 ### Core Protocol Contracts Integrated (`src/lib/chains.ts`)
 
@@ -89,7 +89,7 @@ Taking the Lagrangian $\mathcal{L}(\mathbf{v}, \lambda) = \sum_{i=1}^{N} B_i \fr
 
 $$\frac{\partial R_i}{\partial v_i} = \frac{B_i \cdot V_i}{(V_i + v_i)^2} = \lambda \quad \Longrightarrow \quad v_i^{*}(\lambda) = \max\left(0,\; \sqrt{\frac{B_i \cdot V_i}{\lambda}} - V_i\right)$$
 
-- **60-Iteration Bisection Solver (`solveWaterFilling`):** In [`src/lib/optimizer.ts`](./src/lib/optimizer.ts#L50-L157), EpochPilot solves for the unique shadow price $\lambda^{*}$ to machine precision ($2^{-60}$) in under `1ms`, handling zero-vote edge cases ($V_i \to 0$) via an epsilon floor and stripping current user votes ($V_i = \max(\epsilon, V_{i,\text{total}} - v_{i,\text{current}})$) before re-optimizing so live re-votes never double-count existing weight.
+- **70-Iteration Bisection Solver (`solveWaterFilling`):** In [`src/lib/optimizer.ts`](./src/lib/optimizer.ts), EpochPilot solves for the unique shadow price $\lambda^{*}$ to machine precision ($2^{-70}$) in under `1ms`, handling zero-vote edge cases ($V_i \to 0$) via an epsilon floor and stripping current user votes ($V_i = \max(\epsilon, V_{i,\text{total}} - v_{i,\text{current}})$) before re-optimizing so live re-votes never double-count existing weight.
 - **Real-Time KKT Alpha Quantification:** The solver continuously computes the exact dollar delta between the KKT-optimal multi-gauge vector $\mathbf{v}^{*}$ and the naive 100%-single-gauge allocation, surfacing the exact weekly and annualized **Self-Dilution Avoided**.
 
 ---
@@ -100,14 +100,14 @@ In Mezo’s `BoostVoter`, a `veBTC` lock with weight $w_{\text{veBTC}}$ receives
 
 $$M(v_{\text{boost}}) = \min\left(5.0,\; 1.0 + 4.0 \cdot \frac{W_{\text{veBTC,total}}}{w_{\text{veBTC}}} \cdot \frac{v_{\text{boost}}}{V_{\text{boost,total}}}\right)$$
 
-EpochPilot’s arbitrage engine (`evaluateCrossPairStrategy` in [`src/lib/optimizer.ts`](./src/lib/optimizer.ts#L163-L250)) evaluates both economic regimes in real time:
+EpochPilot’s arbitrage engine (`evaluateCrossPairStrategy` in [`src/lib/optimizer.ts`](./src/lib/optimizer.ts)) evaluates both economic regimes in real time:
 
 | Strategy Regime | Mechanism | Economic Trade-Off |
 | :--- | :--- | :--- |
 | **Option A · Self-Pair** | Allocate your own `veMEZO` Budget 02 (`BoostVoter`) directly onto your own `veBTC` gauge to capture a self-funded multiplier $M_{\text{self}}$. | Zero out-of-pocket `MUSD` bribe cost, but forfeits external `BoostVoter` bribe yields ($R_{\text{external}}$) that your `veMEZO` could have earned on other gauges. |
 | **Option B · Cross-Pair Arbitrage** | Post an **`MUSD` Bribe** on your `veBTC` gauge at the market-clearing price ($P_{\text{clear}}$ per 1,000 `veMEZO` votes) to attract external voters to 5.0x your `veBTC`, while routing **100% of your own `veMEZO`** to maximum-APR external gauges. | Pays $C_{\text{bribe}} = v_{\text{needed,5x}} \cdot P_{\text{clear}}$ in `MUSD`, but captures full `5.0x` `veBTC` yield **plus** 100% of KKT-optimized external `BoostVoter` bribes. |
 
-Whenever $\text{NetYield}(\text{Option B}) > \text{NetYield}(\text{Option A})$, EpochPilot flags **`CROSS-PAIR ARBITRAGE OPTIMAL`** and generates the exact 1-click `BribeVotingReward.notifyRewardAmount(MUSD, bribeAmount)` transaction alongside the external KKT vote vector.
+Whenever $\text{NetYield}(\text{Option B}) > \text{NetYield}(\text{Option A})$, EpochPilot flags **`CROSS-PAIR ARBITRAGE OPTIMAL`** and generates the exact 1-click `BoostVoter.addBribes()` transaction alongside the external KKT vote vector.
 
 ---
 
@@ -144,20 +144,20 @@ EpochPilot is architected specifically to create a self-reinforcing liquidity an
 | `MUSD` Stablecoin Integration | `MEZO` & `veMEZO` Governance Integration |
 | :--- | :--- |
 | **1. Deepens Cross-Chain `MUSD` Liquidity (`ThirdPartyVoter`):** Every KKT optimization on Budget 01 routes `veMEZO` incentives directly to external `MUSD` pools across Uniswap v4 (`USDC/MUSD`), Curve (`MUSD/2Pool`), and Aerodrome (`USDC/MUSD`, `MEZO/MUSD`), tightening `MUSD` peg depth. | **1. Maximizes Dual-Budget Capital Efficiency:** Unlocks simultaneous 100% allocation across both `ThirdPartyVoter` (Budget 01) and `BoostVoter` (Budget 02), activating the `63.5M+` unvoted `veMEZO` supply. |
-| **2. Denominates the `veBTC` Boost Market in `MUSD`:** The Cross-Pair Arbitrage desk prices `veBTC` boost rental in `MUSD` per `1,000 veMEZO` votes and dispatches scoped `MUSD` bribes directly to `BoostVoter` `BribeVotingReward` contracts. | **2. Full `veMEZO` Lifecycle Management in One Desk:** Supports native `veMEZO.createLock` (`+ Mint New Lock`), weekly anti-dilution rebase claims via `RewardsDistributor.claim(tokenId)`, and `PoolsVoter.poke(veBtcId)` boost synchronization. |
+| **2. Denominates the `veBTC` Boost Market in `MUSD`:** The Cross-Pair Arbitrage desk prices `veBTC` boost rental in `MUSD` per `1,000 veMEZO` votes and dispatches scoped `MUSD` bribes directly via `BoostVoter.addBribes()`. | **2. Full `veMEZO` Lifecycle Management in One Desk:** Supports native `veMEZO.createLock` (`+ Mint New Lock`), weekly anti-dilution rebase claims via `RewardsDistributor.claim(tokenId)`, and `PoolsVoter.poke(veBtcId)` boost synchronization. |
 | **3. Structural Buy-and-Lock Pressure into `sMUSD`:** `EpochPilotRouter.sol` sweeps fragmented `MEZO` and `BTC` governance bribes, market-swaps them into `MUSD` via Tigris AMM, and stakes the proceeds into Mezo’s ERC-4626 **`MUSDSavingsRate` (`sMUSD` — `0xb4D4...51CC`)** vault. | **3. Eliminates Whale Vote Dilution:** By equalizing marginal return ($\frac{\partial R_i}{\partial v_i} = \lambda$) across all active gauges, large `veMEZO` holders capture up to `+25%` to `+45%` higher realized bribe yield per locked `MEZO`. |
 
 ---
 
-<a id="60-second-judge-walkthrough"></a>
+<a id="institutional-execution-modes--system-walkthrough"></a>
 
-## Institutional Execution Modes & 60-Second Judge Walkthrough
+## Institutional Execution Modes & System Walkthrough
 
-Any judge can evaluate the full mathematical and on-chain capabilities of EpochPilot in **under 60 seconds**—either without connecting a wallet (using live on-chain whale telemetry) or by executing live transactions on **Mezo Matsnet Testnet (`31611`)** or **Mezo Mainnet (`31612`)**:
+Operators and integrators can evaluate the full mathematical and on-chain capabilities of EpochPilot in **under 60 seconds**—either without connecting a wallet (using live on-chain whale telemetry) or by executing live transactions on **Mezo Matsnet Testnet (`31611`)** or **Mezo Mainnet (`31612`)**:
 
 ### Step 1: Zero-Wallet / Instant On-Chain Whale Simulation (`15s`)
 1. Open the top bar and toggle between **Mainnet** (`Chain ID 31612`) and **Testnet** (`Chain ID 31611`) to inspect real-time multicall telemetry from Mezo’s live contracts (`totalWeight`, active gauges, bribe pools, and `sMUSD` exchange rate).
-2. Click across the preset on-chain lock profiles in the header—**`Whale #148`** (`2.20M veMEZO`), **`Pair #96`** (`1.07M veMEZO` + `2.50 veBTC`), **`Voter #342`** (`540K veMEZO`), or **`Retail #71`** (`48.5K veMEZO`)—or type any on-chain **`Custom NFT #`** to inspect its live `veMEZO` / `veBTC` lock state.
+2. Click across the preset on-chain lock profiles in the header—**`Whale #148`** (`1.22M veMEZO`), **`Pair #96`** (`496.0k veMEZO`), **`Voter #342`** (`153.0k veMEZO`), or **`Retail #71`** (`34.0k veMEZO`)—or type any on-chain **`Custom NFT #`** to inspect its live `veMEZO` / `veBTC` lock state.
 
 ### Step 2: Inspect the 3 Desk Modules (`25s`)
 1. **`01 / Gauge Optimizer`:** Watch the KKT Water-Filling Solver distribute `100%` of **Budget 01 (`ThirdPartyVoter`)** and `100%` of **Budget 02 (`BoostVoter`)** simultaneously, displaying the exact **Self-Dilution Avoided (`+$1,148/wk` for `Whale #148` — `1.22M veMEZO`)** versus naive single-gauge voting.
@@ -166,8 +166,8 @@ Any judge can evaluate the full mathematical and on-chain capabilities of EpochP
 
 ### Step 3: Choose from Three Institutional Execution Modes (`20s`)
 In the right-hand **Execution Summary** rail, switch seamlessly between three execution paths:
-- **`Direct EOA`:** Signs and dispatches direct calls (`ThirdPartyVoter.vote`, `BoostVoter.vote`, `PoolsVoter.poke`, `BribeVotingReward.getReward`) to Mezo's canonical core contracts.
-- **`Batch Router`:** Uses our deployed [`EpochPilotRouter.sol`](https://explorer.test.mezo.org/address/0x938419eB410b5fc2785a17DcCE80f405508Af8ad) (`0x9384...f8ad` on Matsnet Testnet, or one-click `Deploy Router Instance` on Mainnet) to execute dual-voter allocation (`executeDualEpochVote`) and atomic bribe-to-`sMUSD` compounding (`claimAndCompoundToMUSD`) in a single transaction.
+- **`Direct EOA`:** Signs and dispatches direct calls (`ThirdPartyVoter.vote`, `BoostVoter.vote`, `PoolsVoter.poke`, `BoostVoter.claimBribes`, `ThirdPartyVoter.claimBribes`) to Mezo's canonical core contracts.
+- **`Batch Router`:** Uses our deployed [`EpochPilotRouter.sol`](https://explorer.test.mezo.org/address/0x938419eB410b5fc2785a17DcCE80f405508Af8ad) (`0x9384...f8ad` on Matsnet Testnet, or one-click `Deploy Router Instance` on Mainnet) to execute dual-voter allocation (`executeOptimalEpochVote`) and atomic bribe-to-`sMUSD` compounding (`claimAndCompoundToMUSD`) in a single transaction.
 - **`Safe Multisig / Raw Calldata`:** Deterministically encodes and validates ABI hex payloads (`0x7ac09bf7...`) and exports a **Gnosis Safe Transaction Builder JSON bundle** for institutional DAO treasuries and multisig signers.
 
 ---
@@ -188,10 +188,10 @@ EpochPilot has undergone a full smart-contract and Web3 execution security audit
 
 ### Repository Structure & Tech Stack
 
-- **Smart Contracts:** Solidity `0.8.24` ([`contracts/EpochPilotRouter.sol`](./contracts/EpochPilotRouter.sol)) — Zero-dependency, gas-optimized atomic router compiled via `solc` (`src/lib/routerArtifact.json`).
-- **Mathematical Solver & Arbitrage Engine:** TypeScript ([`src/lib/optimizer.ts`](./src/lib/optimizer.ts)) — 60-iteration KKT bisection water-filling solver and `veBTC` Cross-Pair boost evaluator.
-- **On-Chain Telemetry & Multicall API:** Next.js 16 App Router + Viem `2.48` ([`src/app/api/telemetry/route.ts`](./src/app/api/telemetry/route.ts), [`src/lib/chains.ts`](./src/lib/chains.ts), [`src/lib/abis.ts`](./src/lib/abis.ts)).
-- **Frontend Desk Interface:** React 19 + Tailwind CSS v4 ([`src/components/EpochPilotDesk.tsx`](./src/components/EpochPilotDesk.tsx)) — EIP-6963 multi-wallet discovery (Rabby, OKX, MetaMask, Unisat, Taho) with zero-wallet simulation and Gnosis Safe JSON export.
+- **Smart Contracts:** Solidity `0.8.24` ([`contracts/EpochPilotRouter.sol`](./contracts/EpochPilotRouter.sol)) — Zero-dependency, gas-optimized atomic router compiled via `solc` ([`src/lib/routerArtifact.ts`](./src/lib/routerArtifact.ts)).
+- **Mathematical Solver & Arbitrage Engine:** TypeScript ([`src/lib/optimizer.ts`](./src/lib/optimizer.ts)) — 70-iteration KKT bisection water-filling solver and `veBTC` Cross-Pair boost evaluator.
+- **On-Chain Telemetry & Multicall Indexer:** Next.js App Router + Viem `2.48` ([`src/lib/indexer.ts`](./src/lib/indexer.ts), [`src/lib/chains.ts`](./src/lib/chains.ts), [`src/lib/wagmi.ts`](./src/lib/wagmi.ts)).
+- **Frontend Desk Interface:** React 19 + Tailwind CSS v4 ([`src/components/EpochPilotDesk.tsx`](./src/components/EpochPilotDesk.tsx), [`src/components/Web3Provider.tsx`](./src/components/Web3Provider.tsx)) — EIP-6963 multi-wallet discovery (Rabby, OKX, MetaMask, Unisat, Taho) with zero-wallet simulation and Gnosis Safe JSON export.
 
 ```text
 EpochPilot/
@@ -201,18 +201,22 @@ EpochPilot/
 │   └── self-check.ts              # Deterministic KKT & Cross-Pair mathematical verification suite
 ├── src/
 │   ├── app/
-│   │   ├── api/telemetry/route.ts # Live Mainnet (31612) & Matsnet Testnet (31611) multicall indexer
+│   │   ├── globals.css            # Institutional dark-theme design tokens & typography variables
 │   │   ├── layout.tsx             # Root metadata, typography & OpenGraph configuration
+│   │   ├── not-found.tsx          # Custom 404 route handler
 │   │   └── page.tsx               # Entry point rendering EpochPilotDesk
 │   ├── components/
-│   │   └── EpochPilotDesk.tsx     # Interactive 3-module execution desk & wallet transaction builder
+│   │   ├── EpochPilotDesk.tsx     # Interactive 3-module execution desk & wallet transaction builder
+│   │   └── Web3Provider.tsx       # Wagmi / React Query Web3 context provider
 │   └── lib/
-│       ├── abis.ts                # Canonical ABIs for Voters, VeNFT, Tigris, sMUSD & EpochPilotRouter
-│       ├── chains.ts              # Verified Mainnet & Testnet contract registry & fallback telemetry
-│       ├── optimizer.ts           # KKT water-filling solver & Cross-Pair vs. Self-Pair boost engine
-│       └── routerArtifact.json    # Compiled EpochPilotRouter ABI & deployment bytecode
+│       ├── chains.ts              # Verified Mainnet (31612) & Testnet (31611) contract registry & ABIs
+│       ├── indexer.ts             # Live RPC multicall indexer, Tigris reserves & fallback telemetry
+│       ├── optimizer.ts           # 70-iteration KKT water-filling solver & Cross-Pair boost engine
+│       ├── routerArtifact.ts      # Compiled EpochPilotRouter ABI & deployment bytecode
+│       └── wagmi.ts               # Multi-chain transport & wallet connector configuration
+├── RESEARCH.md                    # Protocol mechanics, gauge math & Mezo contract research notes
 ├── SECURITY.md                    # Comprehensive smart contract & Web3 security audit report
-└── README.md                      # Institutional documentation & judge verification guide
+└── README.md                      # Institutional architecture & technical documentation
 ```
 
 ---
