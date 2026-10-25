@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+:root {
+  /* Pure Monochrome Light Mode (shadcn Neutral / Paper) */
+  --background: #fafafa;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --surface-subtle: #f4f4f5;
+  --surface-hover: #e4e4e7;
+  --track-bg: #e4e4e7;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --subtle-foreground: #71717a;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --primary: #09090b;
+  --primary-foreground: #fafafa;
+  --primary-hover: #27272a;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --ring: #09090b;
+  --scrim: rgba(9, 9, 11, 0.42);
+
+  /* Emil Kowalski / Apple fluid easing curves */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+html.dark {
+  /* Pure Monochrome Dark Mode (shadcn Neutral / Vercel Obsidian — Zero Hue) */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #0f0f12;
+  --card-foreground: #fafafa;
+  --surface-subtle: #18181b;
+  --surface-hover: #27272a;
+  --track-bg: #27272a;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --subtle-foreground: #71717a;
+  --border: #222226;
+  --border-strong: #3f3f46;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --primary-hover: #e4e4e7;
+  --secondary: #18181b;
+  --secondary-foreground: #fafafa;
+  --ring: #fafafa;
+  --scrim: rgba(0, 0, 0, 0.72);
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tactile button interaction per apple-design & emil-design-eng */
+.ui-btn {
+  transition: transform 140ms var(--ease-out),
+    background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    color 140ms var(--ease-out),
+    opacity 140ms var(--ease-out);
+}
+
+.ui-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Spatial Consistency: Popover & Modal Materialization */
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-popover-in {
+  transform-origin: top right;
+  animation: popoverIn 150ms var(--ease-out) forwards;
+}
+
+.animate-modal-in {
+  transform-origin: center center;
+  animation: modalIn 180ms var(--ease-out) forwards;
+}
+
+.animate-backdrop-in {
+  animation: backdropIn 160ms var(--ease-out) forwards;
+}
+
+/* Origin-aware hover tooltip */
+.ui-tooltip {
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
+  transform: translateY(2px) scale(0.96);
+}
+
+.group\/bribe:hover .ui-tooltip,
+.group\/apr:hover .ui-tooltip,
+.group\/weight:hover .ui-tooltip,
+.group\/payout:hover .ui-tooltip {
+  transform: translateY(0) scale(1);
+}
+
+/* Smooth bar fill transition */
+.bar-fill {
+  transition: width 160ms var(--ease-out);
+}
+
+/* Monochrome range input */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--track-bg);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--foreground);
+  border: 2px solid var(--background);
+  cursor: grab;
+  transition: transform 140ms var(--ease-out);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.16);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn,
+  .bar-fill,
+  .ui-tooltip,
+  .animate-popover-in,
+  .animate-modal-in,
+  .animate-backdrop-in,
+  input[type="range"]::-webkit-slider-thumb {
+    transition: none !important;
+    animation: none !important;
+  }
+}

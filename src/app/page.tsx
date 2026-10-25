@@ -1,0 +1,233 @@
+import React from "react";
+import { EpochPilotDesk } from "@/components/EpochPilotDesk";
+import type {
+  InspectedNftPosition,
+  ProtocolTelemetry,
+} from "@/lib/indexer";
+
+const INITIAL_TELEMETRY: ProtocolTelemetry = {
+  network: "mainnet",
+  chainId: 31612,
+  blockNumber: 12_738_491,
+  fetchedAtIso: new Date().toISOString(),
+  mezoPriceUsd: 0.085,
+  btcPriceUsd: 81_015,
+  musdPriceUsd: 1.0,
+  veMezoLockedTotal: 280_689_205,
+  veMezoTotalVotingPower: 98_649_490,
+  veMezoPermanentLocked: 34_720_664,
+  veBtcLockedTotal: 804.51,
+  veBtcTotalVotingPower: 1_738.96,
+  boostVoterTotalWeight: 59_793_021,
+  boostVoterGaugeCount: 720,
+  thirdPartyVoterTotalWeight: 35_146_899,
+  thirdPartyVoterGaugeCount: 7,
+  poolsVoterTotalWeight: 1_479.29,
+  musdTotalSupply: 29_482_017,
+  boostUtilizationPercent: 60.61,
+  thirdPartyUtilizationPercent: 35.63,
+  idleBoostVotingPower: 38_856_469,
+  idleThirdPartyVotingPower: 63_502_591,
+  gauges: [
+    {
+      id: "tp-0x2ced96e759ab481210d41c567eee5c42edb59a1d",
+      voterType: "thirdParty",
+      gaugeAddress: "0x2ced96e759ab481210d41c567eee5c42edb59a1d",
+      bribeAddress: "0xb232a2e03004a99724c1f13efa5f156e058b69ac",
+      voteTargetAddress: "0x2ced96e759ab481210d41c567eee5c42edb59a1d",
+      label: "Uniswap v4 USDC/MUSD",
+      sublabel: "Uniswap v4 · Fee 100 · USDC / MUSD",
+      chainLabel: "Ethereum",
+      currentVotes: 16_007_685.57,
+      totalBribeUsd: 7_703,
+      bribeTokens: [
+        {
+          tokenAddress: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+          symbol: "MUSD",
+          amount: 4_962,
+          usdValue: 4_962,
+        },
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 32_253,
+          usdValue: 2_741,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+      estimatedEmissionMezo: 180_826,
+    },
+    {
+      id: "tp-0xc7e81dd77a4624f0dd14a8bb97bc721b0cee6e26",
+      voterType: "thirdParty",
+      gaugeAddress: "0xc7e81dd77a4624f0dd14a8bb97bc721b0cee6e26",
+      bribeAddress: "0xcfa897afb3d313456f5f7cc91d5935e652327cf6",
+      voteTargetAddress: "0xc7e81dd77a4624f0dd14a8bb97bc721b0cee6e26",
+      label: "Aerodrome USDC/MUSD CL10",
+      sublabel: "Aerodrome Slipstream · USDC / MUSD",
+      chainLabel: "Base",
+      currentVotes: 11_446_035.26,
+      totalBribeUsd: 5_508,
+      bribeTokens: [
+        {
+          tokenAddress: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+          symbol: "MUSD",
+          amount: 3_548,
+          usdValue: 3_548,
+        },
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 23_062,
+          usdValue: 1_960,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+      estimatedEmissionMezo: 129_177,
+    },
+    {
+      id: "tp-0x4440a9b2954cb98416c0122e2ea996c46555f4b6",
+      voterType: "thirdParty",
+      gaugeAddress: "0x4440a9b2954cb98416c0122e2ea996c46555f4b6",
+      bribeAddress: "0x6760b0488c43513d7bead617e6ae52ce6b68f83f",
+      voteTargetAddress: "0x4440a9b2954cb98416c0122e2ea996c46555f4b6",
+      label: "Aerodrome MEZO/MUSD CL200",
+      sublabel: "Aerodrome Slipstream · MEZO / MUSD",
+      chainLabel: "Base",
+      currentVotes: 6_871_089.41,
+      totalBribeUsd: 3_306,
+      bribeTokens: [
+        {
+          tokenAddress: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+          symbol: "MUSD",
+          amount: 2_130,
+          usdValue: 2_130,
+        },
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 13_845,
+          usdValue: 1_176,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+      estimatedEmissionMezo: 77_390,
+    },
+    {
+      id: "tp-0xc39a294024dca62f579c49d7c83a6c831d4976d0",
+      voterType: "thirdParty",
+      gaugeAddress: "0xc39a294024dca62f579c49d7c83a6c831d4976d0",
+      bribeAddress: "0xe41b40ea3cb353fb335e363d3190ed60ad16451a",
+      voteTargetAddress: "0xc39a294024dca62f579c49d7c83a6c831d4976d0",
+      label: "Curve MUSD/2Pool",
+      sublabel: "Curve · MUSD / 2Pool · MUSD / USDC / USDT",
+      chainLabel: "Ethereum",
+      currentVotes: 822_088.72,
+      totalBribeUsd: 698,
+      bribeTokens: [
+        {
+          tokenAddress: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+          symbol: "MUSD",
+          amount: 450,
+          usdValue: 450,
+        },
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 2_925,
+          usdValue: 248,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+      estimatedEmissionMezo: 9_279,
+    },
+    {
+      id: "boost-0xd4073c7289bfc4fa908d4c5baa91ef3eb808c1e6",
+      voterType: "boost",
+      gaugeAddress: "0xD4073C7289bfC4fa908D4c5baa91EF3EB808c1e6",
+      bribeAddress: "0x1a92f3Fb5bEfcC8Daa3Fb9E0492665B7e42909a4",
+      voteTargetAddress: "0xD4073C7289bfC4fa908D4c5baa91EF3EB808c1e6",
+      label: "veBTC Lock #98 Boost",
+      sublabel: "BoostVoter · Target veBTC #98",
+      chainLabel: "Mezo",
+      targetVeBtcId: 98,
+      currentVotes: 435_170.92,
+      totalBribeUsd: 641,
+      bribeTokens: [
+        {
+          tokenAddress: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+          symbol: "MUSD",
+          amount: 385,
+          usdValue: 385,
+        },
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 3_012,
+          usdValue: 256,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+    },
+    {
+      id: "boost-0x449b06b9b6c9b649b610105d1a5e337e1d6d3d1e",
+      voterType: "boost",
+      gaugeAddress: "0x449b06b9b6C9B649B610105D1a5e337e1D6d3d1E",
+      bribeAddress: "0xB91210b513d7c1515bE24C476D807239b56b1b5E",
+      voteTargetAddress: "0x449b06b9b6C9B649B610105D1a5e337e1D6d3d1E",
+      label: "veBTC Lock #6033 Boost",
+      sublabel: "BoostVoter · Target veBTC #6033",
+      chainLabel: "Mezo",
+      targetVeBtcId: 6033,
+      currentVotes: 40_830_022.35,
+      totalBribeUsd: 6_800,
+      bribeTokens: [
+        {
+          tokenAddress: "0x7B7c000000000000000000000000000000000001",
+          symbol: "MEZO",
+          amount: 80_000,
+          usdValue: 6_800,
+        },
+      ],
+      isAlive: true,
+      musdIntegrated: true,
+    },
+  ],
+};
+
+const INITIAL_POSITION: InspectedNftPosition = {
+  veMezoTokenId: 148,
+  owner: "0x0FA840c61bEBc545bfEAef45f890fcc84Fddd9D5",
+  lockedMezo: 2_000_000,
+  votingPowerVeMezo: 1_217_233,
+  lockEndUnix: 1893456000,
+  isPermanent: false,
+  boostUsedWeight: 0,
+  boostLastVoted: 0,
+  boostVotedThisEpoch: false,
+  thirdPartyUsedWeight: 0,
+  thirdPartyLastVoted: 0,
+  thirdPartyVotedThisEpoch: false,
+  claimableRebaseMezo: 873_941.82,
+  veBtcTokenId: 98,
+  lockedBtc: 0.4145,
+  unboostedVeBtc: 2.0725,
+  currentBoostMultiplier: 5.0,
+  veBtcBoostGauge: "0xD4073C7289bfC4fa908D4c5baa91EF3EB808c1e6",
+};
+
+export default function HomePage() {
+  return (
+    <main>
+      <EpochPilotDesk
+        initialTelemetry={INITIAL_TELEMETRY}
+        initialPosition={INITIAL_POSITION}
+      />
+    </main>
+  );
+}
