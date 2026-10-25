@@ -113,7 +113,7 @@ Whenever $\text{NetYield}(\text{Option B}) > \text{NetYield}(\text{Option A})$, 
 
 ### Engine 03: Atomic MUSD & sMUSD Bribe Auto-Compounder (`EpochPilotRouter.sol`)
 
-Instead of forcing users to sign 10+ separate claim, approve, swap, and deposit transactions across epoch flips, [`contracts/EpochPilotRouter.sol`](./contracts/EpochPilotRouter.sol) executes the entire governance lifecycle atomically in a single non-custodial transaction (`claimAndCompoundToMUSD` & `executeFullEpochTurnkey`):
+Instead of forcing users to sign 10+ separate claim, approve, swap, and deposit transactions across epoch flips, [`contracts/EpochPilotRouter.sol`](./contracts/EpochPilotRouter.sol) executes the entire governance lifecycle atomically in a single non-custodial transaction (`claimAndCompoundToMUSD` & `executeOptimalEpochVote`):
 
 ```text
 +---------------------------------------------------------------------------------------------------+
@@ -160,7 +160,7 @@ Any judge can evaluate the full mathematical and on-chain capabilities of EpochP
 2. Click across the preset on-chain lock profiles in the header—**`Whale #148`** (`2.20M veMEZO`), **`Pair #96`** (`1.07M veMEZO` + `2.50 veBTC`), **`Voter #342`** (`540K veMEZO`), or **`Retail #71`** (`48.5K veMEZO`)—or type any on-chain **`Custom NFT #`** to inspect its live `veMEZO` / `veBTC` lock state.
 
 ### Step 2: Inspect the 3 Desk Modules (`25s`)
-1. **`01 / Gauge Optimizer`:** Watch the KKT Water-Filling Solver distribute `100%` of **Budget 01 (`ThirdPartyVoter`)** and `100%` of **Budget 02 (`BoostVoter`)** simultaneously, displaying the exact **Self-Dilution Avoided (`+$1,148/wk`)** versus naive single-gauge voting.
+1. **`01 / Gauge Optimizer`:** Watch the KKT Water-Filling Solver distribute `100%` of **Budget 01 (`ThirdPartyVoter`)** and `100%` of **Budget 02 (`BoostVoter`)** simultaneously, displaying the exact **Self-Dilution Avoided (`+$1,148/wk` for `Whale #148` — `1.22M veMEZO`)** versus naive single-gauge voting.
 2. **`02 / Cross-Pair Arbitrage`:** Compare **Option A (Self-Pair)** against **Option B (Cross-Pair via MUSD Bribe)** for your `veBTC` lock, complete with interactive `veMEZO` / `veBTC` sensitivity sliders and 1-click `Post MUSD Bribe on Boost Gauge` execution.
 3. **`03 / MUSD Compounder`:** Inspect pending multi-token bribes across `BoostVoter` and `ThirdPartyVoter`, preview the Tigris AMM swap route into `MUSD`, and toggle **`Auto-Stake into ERC-4626 sMUSD Vault (0xb4D4...51CC)`** to model 1-year `sMUSD` compounding projections.
 

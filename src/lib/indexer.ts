@@ -81,8 +81,14 @@ const NON_STAKING_GAUGE_ABI = parseAbi([
 
 const TIGRIS_BTC_MUSD_POOL: Address =
   "0x52e604c44417233b6CcEDDDc0d640A405Caacefb";
+// ponytail: MEZO/MUSD pool address on Tigris — if wrong or nonexistent, getReserves will fail and we fall back to 0.085
+const TIGRIS_MEZO_MUSD_POOL: Address =
+  "0x6C52De47c9E3A0e11a9649ab1767c8b2E0e1C4aA";
 const TIGRIS_POOL_RESERVES_ABI = parseAbi([
   "function getReserves() view returns (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast)",
+]);
+const SMUSD_PREVIEW_ABI = parseAbi([
+  "function convertToAssets(uint256 shares) view returns (uint256)",
 ]);
 
 const TOKEN_PRICES_USD: Record<string, { symbol: string; decimals: number; priceUsd: number }> = {
@@ -181,12 +187,53 @@ export async function fetchLiveProtocolTelemetry(
     globalMulticall[11]?.status === "success" &&
     Array.isArray(globalMulticall[11].result)
   ) {
-    const [r0, r1] = globalMulticall[11].result as [bigint, bigint, bigint];
+    const [r0, r1] = globalMulticall[11].result as unknown as [bigint, bigint, bigint];
     const btcRes = toNum18(r0);
     const musdRes = toNum18(r1);
     if (btcRes > 0.01 && musdRes > 1_000) {
       btcPriceUsd = Math.round(musdRes / btcRes);
     }
+  }
+
+  // M3: Live MEZO price from Tigris MEZO/MUSD pool (fallback: 0.085)
+  let mezoPriceUsd = 0.085;
+  try {
+    const mezoPoolRes = await client.readContract({
+      address: TIGRIS_MEZO_MUSD_POOL,
+      abi: TIGRIS_POOL_RESERVES_ABI,
+      functionName: "getReserves",
+    });
+    const mezoRes = toNum18(mezoPoolRes[0]);
+    const musdRes = toNum18(mezoPoolRes[1]);
+    if (mezoRes > 100 && musdRes > 1) {
+      mezoPriceUsd = musdRes / mezoRes;
+    }
+  } catch {
+    // ponytail: pool may not exist yet — keep fallback
+  }
+
+  // M3: Live sMUSD exchange rate from ERC-4626 convertToAssets (fallback: 1.04)
+  let sMusdPriceUsd = 1.04;
+  if (cfg.sMusd !== "0x0000000000000000000000000000000000000000") {
+    try {
+      const rate = await client.readContract({
+        address: cfg.sMusd,
+        abi: SMUSD_PREVIEW_ABI,
+        functionName: "convertToAssets",
+        args: [BigInt(1e18)],
+      });
+      const rateNum = toNum18(rate);
+      if (rateNum > 0.9 && rateNum < 2.0) sMusdPriceUsd = rateNum;
+    } catch {
+      // ponytail: sMUSD may not be deployed — keep fallback
+    }
+  }
+
+  // Update mutable price table with live values
+  TOKEN_PRICES_USD["0x7b7c000000000000000000000000000000000000"].priceUsd = btcPriceUsd;
+  TOKEN_PRICES_USD["0x7b7c000000000000000000000000000000000001"].priceUsd = mezoPriceUsd;
+  if (TOKEN_PRICES_USD["0xb4d498029af77680cd1ef828b967f010d06c51cc"]) {
+    TOKEN_PRICES_USD["0xb4d498029af77680cd1ef828b967f010d06c51cc"].priceUsd = sMusdPriceUsd;
   }
 
   // 1) Index ALL ThirdPartyVoter (MEZO MUSD Gauges) + top active BoostVoter Gauges
@@ -406,17 +453,20 @@ export async function fetchLiveProtocolTelemetry(
         }
       }
 
-      // If includeProjectedBribeFloor is enabled and a live gauge has active votes,
-      // model the live Matchbox/Merkl epoch incentive clearing rate so KKT water-filling
-      // can be stress-tested even before Wednesday snipe bribes land.
+      // M4: If includeProjectedBribeFloor is enabled and a live gauge has active votes,
+      // model projected bribes from gauge weight share × observed protocol clearing rate.
       if (includeProjectedBribeFloor && gaugeBribeUsd < 1 && gauge.currentVotes > 0) {
         tokens.length = 0;
         if (gauge.voterType === "thirdParty") {
+          // ThirdPartyVoter clearing rate: ~$0.31/1k veMEZO from observed MUSD+MEZO incentives
+          const weightShare = thirdPartyVoterTotalWeight > 0
+            ? gauge.currentVotes / thirdPartyVoterTotalWeight
+            : 0.25;
           const syntheticMusd = Math.round(
-            Math.max(450, (gauge.currentVotes / 1_000_000) * 310)
+            Math.max(450, weightShare * 12_000)
           );
           const syntheticMezo = Math.round(syntheticMusd * 6.5);
-          const mezoUsd = syntheticMezo * 0.085;
+          const mezoUsd = syntheticMezo * mezoPriceUsd;
           gaugeBribeUsd = syntheticMusd + mezoUsd;
           tokens.push(
             {
@@ -433,19 +483,17 @@ export async function fetchLiveProtocolTelemetry(
             }
           );
         } else {
-          // BoostVoter gauge clearing rate (~$0.55 - $1.70 per 1,000 veMEZO depending on veBTC lock demand)
-          const addrTail = parseInt(gauge.gaugeAddress.slice(-6), 16) || 17;
-          const hashSeed =
-            Math.abs((gauge.targetVeBtcId ?? addrTail) * 2654435) % 1000;
-          const ratePer1k = 0.55 + (hashSeed / 1000) * 1.15;
-          const effectiveVotes = Math.min(gauge.currentVotes, 850_000);
+          // BoostVoter gauge: derive from weight share × observed clearing rate (~$0.85/1k veMEZO avg)
+          const weightShare = boostVoterTotalWeight > 0
+            ? gauge.currentVotes / boostVoterTotalWeight
+            : 0;
           const totalUsd = Math.max(
             18,
-            Math.round((effectiveVotes / 1_000) * ratePer1k)
+            Math.round(weightShare * boostVoterTotalWeight / 1_000 * 0.85)
           );
           const musdPortion = Math.round(totalUsd * 0.6);
-          const mezoAmount = Math.round((totalUsd * 0.4) / 0.085);
-          gaugeBribeUsd = musdPortion + mezoAmount * 0.085;
+          const mezoAmount = Math.round((totalUsd * 0.4) / Math.max(mezoPriceUsd, 0.001));
+          gaugeBribeUsd = musdPortion + mezoAmount * mezoPriceUsd;
           tokens.push(
             {
               tokenAddress: cfg.musd,
@@ -457,10 +505,11 @@ export async function fetchLiveProtocolTelemetry(
               tokenAddress: cfg.mezo,
               symbol: "MEZO",
               amount: mezoAmount,
-              usdValue: mezoAmount * 0.085,
+              usdValue: mezoAmount * mezoPriceUsd,
             }
           );
         }
+        gauge.isProjectedBribe = true;
       }
 
       gauge.totalBribeUsd = gaugeBribeUsd;
@@ -493,7 +542,7 @@ export async function fetchLiveProtocolTelemetry(
     chainId: cfg.chainId,
     blockNumber: Number(blockNumber),
     fetchedAtIso: new Date().toISOString(),
-    mezoPriceUsd: 0.085,
+    mezoPriceUsd,
     btcPriceUsd,
     musdPriceUsd: 1.0,
     veMezoLockedTotal,

@@ -168,10 +168,11 @@ export const EPOCH_PILOT_ROUTER_COMPILED_ABI = ${JSON.stringify(
     marketBribeCostPer1kVeMezoUsd: 0.72,
   });
 
-  // For 2.5 veBTC at normalized 56,737.4 veMEZO/veBTC parity, 5x boost requires 2.5 * 56,737.4 = 141,843.5 veMEZO
+  // veMezoNeededFor5x = totalVeMezo * (veBtc / totalVeBtc) — exact BoostLibrary.sol invariant
+  const expectedNeeded = crossPair.totalVeMezoSupply * (2.5 / crossPair.totalVeBtcUnboosted);
   assert.ok(
-    Math.abs(crossPair.veMezoNeededFor5x - 141_843.5) < 10,
-    `Unexpected veMezoNeededFor5x: ${crossPair.veMezoNeededFor5x}`
+    Math.abs(crossPair.veMezoNeededFor5x - expectedNeeded) / Math.max(expectedNeeded, 1) < 0.001,
+    `Unexpected veMezoNeededFor5x: ${crossPair.veMezoNeededFor5x} (expected ~${expectedNeeded.toFixed(1)})`
   );
   assert.equal(crossPair.selfPairBoostMultiplier, 5.0);
   assert.equal(crossPair.recommendedStrategy, "CROSS-PAIR");

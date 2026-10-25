@@ -25,6 +25,7 @@ export interface GaugeOpportunity {
   isAlive: boolean;
   musdIntegrated: boolean;
   estimatedEmissionMezo?: number; // For ThirdPartyVoter MUSD gauges
+  isProjectedBribe?: boolean; // ponytail: true when bribe is modeled from weight share, not live on-chain
 }
 
 export interface GaugeAllocationItem {
@@ -413,7 +414,7 @@ export function optimizeDualVoterPortfolio(
     combinedAnnualizedMusd,
     combinedAprPercent,
     dualBudgetAlphaUsd:
-      thirdPartyResult.totalExpectedPayoutUsd + boostResult.selfDilutionSavedUsd,
+      thirdPartyResult.selfDilutionSavedUsd + boostResult.selfDilutionSavedUsd,
   };
 }
 

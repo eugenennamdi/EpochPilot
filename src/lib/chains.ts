@@ -143,17 +143,17 @@ export const KNOWN_THIRD_PARTY_GAUGES: Record<
     musdIntegrated: true,
   },
   "0x2ced96e759ab481210d41c567eee5c42edb59a1d": {
-    name: "Uniswap v4 USDC/MUSD",
-    chain: "Ethereum",
-    protocol: "Uniswap v4 · Fee 100",
-    pair: "USDC / MUSD",
-    musdIntegrated: true,
-  },
-  "0xc39a294024dca62f579c49d7c83a6c831d4976d0": {
-    name: "Curve MUSD/2Pool",
+    name: "Curve USDT/USDC/MUSD",
     chain: "Ethereum",
     protocol: "Curve · MUSD / 2Pool",
     pair: "MUSD / USDC / USDT",
+    musdIntegrated: true,
+  },
+  "0xc39a294024dca62f579c49d7c83a6c831d4976d0": {
+    name: "Uniswap USDC/MUSD",
+    chain: "Ethereum",
+    protocol: "Uniswap v4 · Fee 100",
+    pair: "USDC / MUSD",
     musdIntegrated: true,
   },
   "0xf453fc7481a1d36eb57cf227afb5bfe7170d61a8": {

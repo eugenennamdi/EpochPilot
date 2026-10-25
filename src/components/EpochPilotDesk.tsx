@@ -1090,7 +1090,7 @@ export function EpochPilotDesk({
       thirdPartyVoteHex,
       routerBatchHex,
     };
-  }, [dualOptimization, veMezoIdInput, veBtcIdInput]);
+  }, [dualOptimization, veMezoIdInput]);
 
   // Ensure wallet is switched to the selected Mezo network
   const ensureMezoChain = async (connector?: Connector) => {
@@ -2027,6 +2027,38 @@ export function EpochPilotDesk({
             .catch(() => 0n),
         ]);
 
+        // C1: Check ERC-20 allowances and prompt approval if needed
+        const tokensToApprove: { addr: Address; symbol: string; bal: bigint }[] = [];
+        if (mezoBalRaw > 0n) tokensToApprove.push({ addr: cfg.mezo, symbol: "MEZO", bal: mezoBalRaw });
+        if (btcBalRaw > 0n) tokensToApprove.push({ addr: cfg.btc, symbol: "BTC", bal: btcBalRaw });
+
+        for (let i = 0; i < tokensToApprove.length; i++) {
+          const tok = tokensToApprove[i];
+          const allowance = await pubClient
+            .readContract({
+              address: tok.addr,
+              abi: ERC20_ABI,
+              functionName: "allowance",
+              args: [account, routerAddress as Address],
+            })
+            .catch(() => 0n);
+          if (allowance < tok.bal) {
+            setTxStatus({
+              type: "pending",
+              message: `Step ${i + 1}/${tokensToApprove.length + 1}: Approving ${tok.symbol} for Tigris AMM swap...`,
+            });
+            const appHash = await client.writeContract({
+              chain,
+              account,
+              address: tok.addr,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [routerAddress as Address, tok.bal],
+            });
+            await pubClient.waitForTransactionReceipt({ hash: appHash });
+          }
+        }
+
         // Calculate 1% max-slippage floor (99.0% of oracle value) so minMusdOuts is never 0 when swapping
         const mezoPriceScaled = BigInt(
           Math.max(1, Math.round(telemetry.mezoPriceUsd * 1e6))
@@ -2558,7 +2590,7 @@ export function EpochPilotDesk({
         </div>
 
         {/* UNIFIED 1PX HAIRLINE METRIC STRIP (Vercel Analytics / Linear pattern) */}
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+        <section className={`rounded-lg border border-[var(--border)] bg-[var(--card)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] transition-opacity duration-300 ${isLoadingTelemetry ? "opacity-50 animate-pulse" : ""}`}>
           <div className="p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between gap-2 text-xs text-[var(--muted-foreground)] whitespace-nowrap">
               <span>Simulated Voting Weight</span>
@@ -2928,6 +2960,9 @@ export function EpochPilotDesk({
                                   <span className="font-semibold text-[var(--foreground)] text-xs underline decoration-dotted decoration-[var(--border-strong)] underline-offset-4">
                                     ${formatUsd(item.gauge.totalBribeUsd, 0)}
                                   </span>
+                                  {item.gauge.isProjectedBribe && (
+                                    <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--surface-subtle)] text-[var(--muted-foreground)] border border-[var(--border)]" title="Projected from gauge weight share — not yet posted on-chain this epoch">Est.</span>
+                                  )}
                                   <div
                                     className={`ui-tooltip pointer-events-none opacity-0 group-hover/bribe:opacity-100 absolute right-0 ${tooltipPos} z-30 px-2.5 py-1.5 rounded-md border border-[var(--border-strong)] bg-[var(--card)] text-[11px] text-[var(--foreground)] whitespace-nowrap flex items-center gap-2`}
                                   >

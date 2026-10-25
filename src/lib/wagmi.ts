@@ -6,7 +6,7 @@ export const wagmiConfig = createConfig({
   multiInjectedProviderDiscovery: true, // Only discover installed EIP-6963 wallets
   connectors: [],
   transports: {
-    [mezoMainnet.id]: http("https://rpc-http.mezo.boar.network"),
+    [mezoMainnet.id]: http("https://mezo-mainnet.boar.network"),
     [mezoTestnet.id]: http("https://rpc.test.mezo.org"),
   },
   ssr: true,

@@ -47,6 +47,7 @@ interface IBoostVoter is IMezoVoter {
     function pokeBoost(uint256 _veBtcTokenId) external;
     function pokeBoosts(uint256[] calldata _veBtcTokenIds) external;
     function getBoost(uint256 _veBtcTokenId) external view returns (uint256);
+    function addBribes(address _gauge, address[] calldata _tokens, uint256[] calldata _amounts) external;
 }
 
 interface IRewardsDistributor {
@@ -353,13 +354,13 @@ contract EpochPilotRouter {
      *         BribeVotingReward contract and pokes the veBTC boost in one transaction.
      */
     function postCrossPairBribeAndPoke(
-        address bribeContract,
+        address gauge,
         address rewardToken,
         uint256 amount,
         uint256 veBtcTokenId,
         bool pokePoolsVoter
     ) external nonReentrant {
-        if (bribeContract == address(0) || rewardToken == address(0)) {
+        if (gauge == address(0) || rewardToken == address(0)) {
             revert ZeroAddress();
         }
         if (amount == 0) {
@@ -367,9 +368,14 @@ contract EpochPilotRouter {
         }
 
         _safeTransferFrom(rewardToken, msg.sender, address(this), amount);
-        _forceApprove(rewardToken, bribeContract, amount);
-        IBribeVotingReward(bribeContract).notifyRewardAmount(rewardToken, amount);
-        _forceApprove(rewardToken, bribeContract, 0);
+        _forceApprove(rewardToken, address(boostVoter), amount);
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = rewardToken;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+        boostVoter.addBribes(gauge, tokens, amounts);
+        _forceApprove(rewardToken, address(boostVoter), 0);
 
         // Return any unconsumed reward token dust to sponsor
         uint256 leftover = IERC20(rewardToken).balanceOf(address(this));
@@ -384,6 +390,6 @@ contract EpochPilotRouter {
             }
         }
 
-        emit CrossPairBribePosted(msg.sender, bribeContract, rewardToken, amount, veBtcTokenId);
+        emit CrossPairBribePosted(msg.sender, gauge, rewardToken, amount, veBtcTokenId);
     }
 }
